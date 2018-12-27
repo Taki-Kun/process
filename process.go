@@ -1,6 +1,8 @@
 package process
 
 import (
+	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/net"
 	"github.com/shirou/gopsutil/process"
 	log "github.com/sirupsen/logrus"
 )
@@ -24,25 +26,26 @@ const (
 	RLIMIT_RTTIME     int32 = 15
 )
 
-type MemoryInfoStat struct {
-	RSS    uint64 `json:"rss"`    // bytes
-	VMS    uint64 `json:"vms"`    // bytes
-	Data   uint64 `json:"data"`   // bytes
-	Stack  uint64 `json:"stack"`  // bytes
-	Locked uint64 `json:"locked"` // bytes
-	Swap   uint64 `json:"swap"`   // bytes
-}
-
 type CpuInfoStat struct {
 	Percent float64 `json:"percent"`
-} 
+}
 
 type ProcStat struct {
 	Pid int32 `json:"pid"`
-	Mem *MemoryInfoStat
-	Cpu *CpuInfoStat
 	Percent float64
-	status string
+	CpuInfo *CpuInfoStat
+	MemInfo *process.MemoryInfoStat
+	MemInfoEx *process.MemoryInfoExStat
+	NumThreads int32
+	Threads map[int32]*cpu.TimesStat
+	Fd int32 `json:"fd"`
+	Nice int32
+	NumCtxSwitches *process.NumCtxSwitchesStat
+	IOCounters *process.IOCountersStat
+	NetIOCounters []net.IOCountersStat
+	NetConnection []net.ConnectionStat
+	CreateTime int64
+	Status string
 }
 
 func ProcessInfo(pid int32) (ps *ProcStat, err error) {
@@ -82,7 +85,7 @@ func ProcessInfo(pid int32) (ps *ProcStat, err error) {
 
 	// log.Info(p.CmdlineSlice())
 
-	log.Info(p.Status())
+	// log.Info(p.Status())
 
 	// log.Info(p.Uids())
 
@@ -94,19 +97,20 @@ func ProcessInfo(pid int32) (ps *ProcStat, err error) {
 
 	// log.Info(p.Kill())
 
-
-
-	pmi, err := p.MemoryInfo()
-	if err != nil {
+	var pmi *process.MemoryInfoStat
+	if pmi, err = p.MemoryInfo();err != nil {
 		return nil, err
 	}
 
-	pcp, err := p.CPUPercent()
-	if err != nil {
+	var pcp float64
+	if pcp, err = p.CPUPercent();err != nil {
 		return nil, err
 	}
 
-	// fmt.Println(p.MemoryInfoEx())
+	var pmie *process.MemoryInfoExStat
+	if pmie, err = p.MemoryInfoEx();err != nil {
+		return nil, err
+	}
 
 	// fmt.Println(p.MemoryMaps(true))
 
@@ -118,37 +122,70 @@ func ProcessInfo(pid int32) (ps *ProcStat, err error) {
 
 	// fmt.Println(p.Times())
 
-	// fmt.Println(p.NumThreads())
+	var pnt int32
+	if pnt, err = p.NumThreads(); err != nil {
+		return nil, err
+	}
 
-	// fmt.Println(p.Threads())
+	var pthreads map[int32]*cpu.TimesStat
+	if pthreads, err = p.Threads(); err != nil {
+		return nil, err
+	}
 
-	// fmt.Println(p.NumFDs())
+	var pnf int32
+	if pnf, err = p.NumFDs(); err != nil {
+		return nil, err
+	}
 
 	// fmt.Println(p.OpenFiles())
 
-	// fmt.Println(p.Nice())
+	var pnice int32
+	if pnice, err = p.Nice(); err != nil {
+		return nil, err
+	}
 
-	// fmt.Println(p.NumCtxSwitches())
+	var pncs *process.NumCtxSwitchesStat
+	if pncs, err = p.NumCtxSwitches(); err != nil {
+		return nil, err
+	}
 
-	// fmt.Println(p.IOCounters())
+	var pioc *process.IOCountersStat
+	if pioc, err = p.IOCounters(); err != nil {
+		return nil, err
+	}
 
-	// fmt.Println(p.NetIOCounters(true))
+	var pnioc []net.IOCountersStat
+	if pnioc, err = p.NetIOCounters(true); err != nil {
+		return nil, err
+	}
 
-	// fmt.Println(p.Connections())
+	var pconn []net.ConnectionStat
+	if pconn, err = p.Connections(); err != nil {
+		return nil, err
+	}
 
-	// fmt.Println(p.CreateTime())
+	var pctime int64
+	if pctime, err = p.CreateTime(); err != nil {
+		return nil, err
+	}
 
 	ps = &ProcStat{
 		Pid: pid,
 		Percent: pp,
-		Mem: &MemoryInfoStat{
-			RSS: pmi.RSS,
-			VMS: pmi.VMS,
-			Swap: pmi.Swap,
-		},
-		Cpu: &CpuInfoStat{
+		CpuInfo: &CpuInfoStat{
 			Percent: pcp,
 		},
+		MemInfo: pmi,
+		MemInfoEx: pmie,
+		NumThreads: pnt,
+		Threads: pthreads,
+		Fd: pnf,
+		Nice: pnice,
+		NumCtxSwitches: pncs,
+		IOCounters: pioc,
+		NetIOCounters: pnioc,
+		NetConnection: pconn,
+		CreateTime: pctime,
 	}
 	return
 }
