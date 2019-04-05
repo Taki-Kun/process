@@ -66,8 +66,8 @@ func ProcessInfo(pid int32) (ps *ProcStat, err error) {
 	}
 	// log.Debugf("Process instance instance has been created!!")
 
-	var pname string
-	if pname, err = p.Name(); err != nil {
+	// var pname string
+	if _, err = p.Name(); err != nil {
 		return
 	}
 	// log.Debugf("Process name is %v", pname)
