@@ -57,20 +57,20 @@ func ProcessInfo(pid int32) (ps *ProcStat, err error) {
 		log.Errorf("Process is not running! Error: %v", err)
 		return
 	}
-	log.Debugf("Process is running status!")
+	// log.Debugf("Process is running status!")
 
 	var p *process.Process
 	if p, err = process.NewProcess(pid); err != nil {
 		log.Errorf("Process instance created failed! Error: %v", err)
 		return
 	}
-	log.Debugf("Process instance instance has been created!!")
+	// log.Debugf("Process instance instance has been created!!")
 
 	var pname string
 	if pname, err = p.Name(); err != nil {
 		return
 	}
-	log.Debugf("Process name is %v", pname)
+	// log.Debugf("Process name is %v", pname)
 
 	var pp float64
 	if pp, err = p.Percent(0);err != nil {
